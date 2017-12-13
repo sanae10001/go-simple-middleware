@@ -53,21 +53,26 @@ func OptHeader(h string) Option {
 	}
 }
 
-func (h *RequestId) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	requestId := r.Header.Get(h.header)
+func (ri *RequestId) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	requestId := r.Header.Get(ri.header)
 	if requestId == "" {
 		var err error
-		requestId, err = h.idGenFunc(h.length)
+		requestId, err = ri.idGenFunc(ri.length)
 		if err != nil {
 			goto Next
 		}
 	}
-	r.Header.Set(h.header, requestId)
-	w.Header().Set(h.header, requestId)
+	r.Header.Set(ri.header, requestId)
+	w.Header().Set(ri.header, requestId)
 
 Next:
 	next(w, r)
+}
 
+func (ri *RequestId) Handler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ri.ServeHTTP(w, r, h.ServeHTTP)
+	})
 }
 
 func DefaultIdGenFunc(length int) (string, error) {

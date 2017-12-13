@@ -36,6 +36,13 @@ func (bs *BodyLimit) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 	next(w, r)
 }
 
+func (bs *BodyLimit) Handler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		bs.ServeHTTP(w, r, h.ServeHTTP)
+
+	})
+}
+
 type maxBytesReader struct {
 	r io.ReadCloser
 }

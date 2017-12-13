@@ -58,3 +58,9 @@ func (ba *BasicAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 	w.Header().Set(HeaderWWWAuthenticate, basic+" realm="+realm)
 	w.WriteHeader(http.StatusUnauthorized)
 }
+
+func (ba *BasicAuth) Handler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ba.ServeHTTP(w, r, h.ServeHTTP)
+	})
+}
