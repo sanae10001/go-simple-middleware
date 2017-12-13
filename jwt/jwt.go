@@ -35,6 +35,10 @@ type (
 	// A function used to extract jwt token raw string from request.
 	TokenExtractor func(r *http.Request) (string, error)
 
+	PrintLogger interface {
+		Println(v ...interface{})
+	}
+
 	Config struct {
 		// Signing key to validate token.
 		// Required if ValidationKeyGetter is nil.
@@ -47,8 +51,8 @@ type (
 		ValidationKeyGetter jwt.Keyfunc
 
 		// Signing method, used to verify tokens are signed with the specific signing algorithm.
-		// Optional. Default: HS256.
-		SigningMethod string
+		// Optional. Default: jwt.SigningMethodHS256.
+		SigningMethod jwt.SigningMethod
 
 		// The key name in the context where the user information
 		// from the JWT will be stored.
@@ -84,11 +88,16 @@ type (
 		// Optional. Default: ContextValueSetClaims
 		ContextValueHandler ContextValueHandler
 	}
+
+	JWT struct {
+		cfg    Config
+		logger PrintLogger
+	}
 )
 
 func New(config Config) *JWT {
-	if config.SigningMethod == "" {
-		config.SigningMethod = "HS256"
+	if config.SigningMethod == nil {
+		config.SigningMethod = jwt.SigningMethodHS256
 	}
 
 	if config.ValidationKeyGetter == nil {
@@ -96,8 +105,8 @@ func New(config Config) *JWT {
 			panic("JWT: SigningKey or ValidationKeyGetter is required")
 		}
 		config.ValidationKeyGetter = func(t *jwt.Token) (interface{}, error) {
-			if t.Method.Alg() != config.SigningMethod {
-				return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
+			if t.Method.Alg() != config.SigningMethod.Alg() {
+				return nil, fmt.Errorf("unexpected jwt signing method=%s", t.Method.Alg())
 			}
 			return config.SigningKey, nil
 		}
@@ -124,15 +133,6 @@ func New(config Config) *JWT {
 	}
 
 	return &JWT{cfg: config}
-}
-
-type PrintLogger interface {
-	Println(v ...interface{})
-}
-
-type JWT struct {
-	cfg    Config
-	logger PrintLogger
 }
 
 func (j *JWT) log(s string) {
