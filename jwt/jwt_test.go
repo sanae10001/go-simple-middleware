@@ -52,3 +52,38 @@ func TestJWT_HandleJWT_FromCookie(t *testing.T) {
 	assert.Equal(t, m["id"], "id")
 	assert.Equal(t, m["name"], "name")
 }
+
+type CustomClaims struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (CustomClaims) Valid() error {
+	return nil
+}
+
+func TestJWT_HandleJWT_CustomClaims(t *testing.T) {
+	claims := CustomClaims{
+		ID:   "id",
+		Name: "name",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, _ := token.SignedString(signingKey)
+
+	j := New(Config{
+		SigningKey: signingKey,
+		Claims:     &CustomClaims{},
+	})
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/", nil)
+	r.Header.Set(HeaderAuthorization, fmt.Sprintf("%s %s", Bearer, tokenString))
+
+	assert.NoError(t, j.HandleJWT(w, r))
+	value := r.Context().Value("user")
+	assert.NotNil(t, value)
+	m, ok := value.(*CustomClaims)
+	assert.True(t, ok)
+	assert.Equal(t, m.ID, "id")
+	assert.Equal(t, m.Name, "name")
+}
