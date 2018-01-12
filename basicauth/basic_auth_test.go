@@ -20,7 +20,7 @@ func TestBasicAuth_ServeHTTP(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/", nil)
 	r.SetBasicAuth(username, password)
-	h.ServeHTTP(w, r, next)
+	h.HandlerWithNext(w, r, next)
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected status code %d, got %d.", http.StatusOK, w.Code)
 	}
@@ -31,7 +31,7 @@ func TestBasicAuth_ServeHTTP(t *testing.T) {
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("POST", "/", nil)
 	r.SetBasicAuth("invalid_username", "invalid_password")
-	h.ServeHTTP(w, r, next)
+	h.HandlerWithNext(w, r, next)
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("Expected status code %d, got %d.", http.StatusUnauthorized, w.Code)
 	}

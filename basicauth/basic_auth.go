@@ -43,7 +43,7 @@ func NewBasicAuth(fn BasicAuthValidator) *BasicAuth {
 	return b
 }
 
-func (ba *BasicAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (ba *BasicAuth) HandlerWithNext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	// Authorization: Basic base64-username-and-password
 	username, password, ok := r.BasicAuth()
 	if ok && ba.Validator(username, password, r.Context()) {
@@ -61,6 +61,6 @@ func (ba *BasicAuth) ServeHTTP(w http.ResponseWriter, r *http.Request, next http
 
 func (ba *BasicAuth) Handler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ba.ServeHTTP(w, r, h.ServeHTTP)
+		ba.HandlerWithNext(w, r, h.ServeHTTP)
 	})
 }

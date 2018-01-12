@@ -24,7 +24,7 @@ type BodyLimit struct {
 The http.ResponseWriter must be net/http.*response.
 Reason see: net/http.maxBytesReader.Read
 */
-func (bs *BodyLimit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (bs *BodyLimit) HandlerWithNext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	contentLength, _ := strconv.ParseInt(
 		r.Header.Get("Content-Length"), 10, 64)
 	// Check content length
@@ -35,13 +35,8 @@ func (bs *BodyLimit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check body size
 	r.Body = &maxBytesReader{w, http.MaxBytesReader(w, r.Body, bs.limit)}
-}
 
-func (bs *BodyLimit) HandlerWithNext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	bs.ServeHTTP(w, r)
-	if next != nil {
-		next(w, r)
-	}
+	next(w, r)
 }
 
 func (bs *BodyLimit) Handler(h http.Handler) http.Handler {

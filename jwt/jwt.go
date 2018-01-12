@@ -30,7 +30,7 @@ type (
 	ErrorHandler func(w http.ResponseWriter, r *http.Request, err error)
 
 	// A function called before set value into context
-	ContextValueHandler func(token *jwt.Token) (interface{}, error)
+	ContextValueFunc func(token *jwt.Token) (interface{}, error)
 
 	// A function used to extract jwt token raw string from request.
 	TokenExtractor func(r *http.Request) (string, error)
@@ -86,7 +86,7 @@ type (
 		// The function that will be called before set value into context.
 		// Used to customize the value will be stored into context.
 		// Optional. Default: ContextValueSetClaims
-		ContextValueHandler ContextValueHandler
+		ContextValueFunc ContextValueFunc
 	}
 
 	JWT struct {
@@ -128,8 +128,8 @@ func New(config Config) *JWT {
 		config.ErrorHandler = OnError
 	}
 
-	if config.ContextValueHandler == nil {
-		config.ContextValueHandler = ContextValueSetClaims
+	if config.ContextValueFunc == nil {
+		config.ContextValueFunc = ContextValueSetClaims
 	}
 
 	return &JWT{cfg: config}
@@ -209,7 +209,7 @@ func (j *JWT) HandleJWT(w http.ResponseWriter, r *http.Request) error {
 
 	j.log(fmt.Sprintf("JWT: %v", token))
 
-	value, err := j.cfg.ContextValueHandler(token)
+	value, err := j.cfg.ContextValueFunc(token)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ func TestRequestId_ServeHTTP(t *testing.T) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/", nil)
 	r.Header.Set(HeaderRequestId, "random-request-id")
-	h.ServeHTTP(w, r, next)
+	h.HandlerWithNext(w, r, next)
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected status code %d, got %d.", http.StatusOK, w.Code)
 	}
@@ -32,7 +32,7 @@ func TestRequestId_ServeHTTP(t *testing.T) {
 
 	w = httptest.NewRecorder()
 	r = httptest.NewRequest("POST", "/", nil)
-	h.ServeHTTP(w, r, next)
+	h.HandlerWithNext(w, r, next)
 	if w.Code != http.StatusOK {
 		t.Fatalf("Expected status code %d, got %d.", http.StatusOK, w.Code)
 	}
