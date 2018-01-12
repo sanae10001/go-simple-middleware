@@ -1,5 +1,7 @@
 # negroni-middlewares
-Simple middleware for [negroni](https://github.com/urfave/negroni)
+Simple go http middleware
+
+Support [negroni](https://github.com/urfave/negroni) and standard http library
 
 - [x] Basic auth
 - [x] Body limit
