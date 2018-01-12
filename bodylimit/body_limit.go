@@ -1,15 +1,13 @@
 package bodylimit
 
 import (
-	"errors"
 	"io"
 	"net/http"
 	"strconv"
 )
 
-var (
-	ErrTooLarge         = errors.New("request body too large")
-	internalErrTooLarge = errors.New("http: request body too large")
+const (
+	internalErrTooLargeString = "http: request body too large"
 )
 
 func NewBodyLimit(limit Byte) *BodyLimit {
@@ -22,35 +20,47 @@ type BodyLimit struct {
 	limit int64
 }
 
-func (bs *BodyLimit) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+/*
+The http.ResponseWriter must be net/http.*response.
+Reason see: net/http.maxBytesReader.Read
+*/
+func (bs *BodyLimit) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	contentLength, _ := strconv.ParseInt(
 		r.Header.Get("Content-Length"), 10, 64)
 	// Check content length
 	if contentLength > bs.limit {
-		http.Error(w, ErrTooLarge.Error(), http.StatusRequestEntityTooLarge)
+		http.Error(w, internalErrTooLargeString, http.StatusRequestEntityTooLarge)
 		return
 	}
 
 	// Check body size
-	r.Body = &maxBytesReader{http.MaxBytesReader(w, r.Body, bs.limit)}
-	next(w, r)
+	r.Body = &maxBytesReader{w, http.MaxBytesReader(w, r.Body, bs.limit)}
+}
+
+func (bs *BodyLimit) HandlerWithNext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	bs.ServeHTTP(w, r)
+	if next != nil {
+		next(w, r)
+	}
 }
 
 func (bs *BodyLimit) Handler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		bs.ServeHTTP(w, r, h.ServeHTTP)
+		bs.HandlerWithNext(w, r, h.ServeHTTP)
 
 	})
 }
 
 type maxBytesReader struct {
+	w http.ResponseWriter
 	r io.ReadCloser
 }
 
 func (l *maxBytesReader) Read(p []byte) (n int, err error) {
 	n, err = l.r.Read(p)
-	if err != nil && err.Error() == internalErrTooLarge.Error() {
-		return n, ErrTooLarge
+	if err != nil && err.Error() == internalErrTooLargeString {
+		l.w.WriteHeader(http.StatusRequestEntityTooLarge)
+		return
 	}
 	return
 }
